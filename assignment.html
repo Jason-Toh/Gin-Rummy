@@ -1,0 +1,394 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0048)https://fit2102.monash/resources/assignment.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="generator" content="pandoc">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #f8f8f8; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+pre, code { background-color: #f8f8f8; }
+code > span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code > span.dt { color: #204a87; } /* DataType */
+code > span.dv { color: #0000cf; } /* DecVal */
+code > span.bn { color: #0000cf; } /* BaseN */
+code > span.fl { color: #0000cf; } /* Float */
+code > span.ch { color: #4e9a06; } /* Char */
+code > span.st { color: #4e9a06; } /* String */
+code > span.co { color: #8f5902; font-style: italic; } /* Comment */
+code > span.ot { color: #8f5902; } /* Other */
+code > span.al { color: #ef2929; } /* Alert */
+code > span.fu { color: #000000; } /* Function */
+code > span.er { color: #a40000; font-weight: bold; } /* Error */
+code > span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #000000; } /* Constant */
+code > span.sc { color: #000000; } /* SpecialChar */
+code > span.vs { color: #4e9a06; } /* VerbatimString */
+code > span.ss { color: #4e9a06; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #000000; } /* Variable */
+code > span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code > span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code > span.ex { } /* Extension */
+code > span.at { color: #c4a000; } /* Attribute */
+code > span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code > span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="./assignment_files/pandoc.css" type="text/css">
+</head>
+<body>
+<h1 id="fit2102-assignment-2-gin-rummy">FIT2102 Assignment 2: Gin Rummy</h1>
+<ul>
+<li><strong>Due Date</strong>: November 6<sup>th</sup>, 23:55</li>
+<li><strong>Weighting</strong>: 30% of your final mark for the unit</li>
+<li><strong>Uploader</strong>: <a href="https://fit2102.monash/uploader/" class="uri">https://fit2102.monash/uploader/</a></li>
+<li><strong>Overview</strong>: Your goal is to implement a player for the game of Gin Rummy. Your player needs to be able to play a valid game; manage a “memory” string with a parser-combinator; and, leverage concepts from the course. You will also need to write a two-page-report describing your submission.</li>
+<li><strong>Building and using the code</strong>: The code bundle is packaged the same way as tutorials. To compile the code, run: <code>stack build</code>. To execute the code, run: <code>stack exec staticgame</code>. If you want to play with more players, you will need to edit <code>staticgame/Main.hs</code>. You cannot edit the <code>stack</code> configuration.</li>
+<li><strong>Submission</strong>: Your player source code and your report in PDF format go in the <code>submission/</code> folder of the code bundle. To submit you will zip up <em>just the contents of this <code>submission/</code> folder</em> into one file named <code>studentNo_name.zip</code>.</li>
+</ul>
+<h2 id="changelog">Changelog</h2>
+<ul>
+<li><strong>12/10</strong>: Add missing aces to deck.</li>
+<li><strong>12/10</strong>: Pass a <code>Maybe Draw</code> to <code>actionFunc</code>.</li>
+</ul>
+<h2 id="gin-rummy">Gin Rummy</h2>
+<p>Gin Rummy is a two-player game where the objective is to score 100 points before your opponent. Points are awarded to the player whose hand has the lowest value at the end of a round. The value of a hand depends on how you decide to organise your cards – called “forming melds.”</p>
+<p>Your task for this assignment is to implement a player able to play a non-trivial game of Gin Rummy. We will use a classic deck of 52 cards, aces low.<a href="https://fit2102.monash/resources/assignment.html#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<p>You can find a longer explanation <a href="https://www.coololdgames.com/card-games/rummy/gin/">online</a>, or even <a href="https://cardgames.io/ginrummy/">play the game</a>. Do note, though, that the variant we use has a few key differences, namely (compared to the linked resources):</p>
+<ul>
+<li>The non-dealer does not get to <em>take the up-card,</em> the game starts after dealing.</li>
+<li>There is non <em>laying-off</em>, we only count the melds formed in your own hand.</li>
+<li>You cannot discard the card you just drew.</li>
+<li>There is no <em>Big Gin,</em> you always have to discard at the end of your turn.</li>
+</ul>
+<p>In the variant of Gin Rummy we use, a round (also called “playing a hand”) proceeds as follows:</p>
+<ol style="list-style-type: decimal">
+<li>A <em>dealer</em> is chosen at random; this player will be last to go.</li>
+<li>Each player is dealt <em>ten cards;</em> these form <em>a hand</em>.</li>
+<li>The first card after dealing two hands is revealed and put face-side up, this forms the <em>discard</em>; the rest of the cards form the <em>stock</em>.</li>
+<li>In turn, each player then decides whether they want to pick the (visible) card from the discard, or the (hidden) top card from the stock.</li>
+<li>To end their turn, players will have to discard a card from their hand and announce if they want to end the game.</li>
+</ol>
+<p>At the end of their turn, players thus discard a card and have three choices:</p>
+<ol style="list-style-type: decimal">
+<li><em>Call Gin</em>, which means that they managed to fit all ten cards in their hand into meld. Calling Gin awards bonus points.</li>
+<li><em>Knock,</em> which means that, although they did not manage to fit all ten cards into melds, they believe to have a hand of lower value that their opponent’s. You can only Knock if your deadwood’s total value is less than 10.</li>
+<li><em>Discard,</em> which means that they do not want to end the game.</li>
+</ol>
+<h3 id="forming-melds">Forming melds</h3>
+<p>The core mechanic of Gin Rummy is to fit cards into melds – think poker combinations. In our variant of Gin Rummy, we will use three types of melds:<a href="https://fit2102.monash/resources/assignment.html#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<ul>
+<li><strong>Straight:</strong> a combination of three to five cards of the same suit with consecutive numbers. For example: <strong>A♠ 2♠ 3♠</strong>.</li>
+<li><strong>Set:</strong> a combination of three or four cards with the same rank in different suits. For example: <strong><span style="color: red">8♥ 8♦</span> 8♠</strong>.</li>
+<li><strong>Deadwood:</strong> any card which does not fit into a meld.</li>
+</ul>
+<p>Now, the interesting part of Gin Rummy is that melds are not cumulative. This means that a hand of cards can form different melds. Consider the following cards: <strong>7♣ 7♠ <span style="color: red">7♦ 8♦ 9♦</span></strong>, the seven of diamonds can be included in either a straight or a set but cannot be included in both. The strategy in this game is thus to decide which cards should belong to which melds.</p>
+<h3 id="counting-points">Counting points</h3>
+<p>The other important part of Gin Rummy is how to count points. There are two things that matter for scoring: the number of points (or value) of a hand and the bonus points awarded at the end of the game.</p>
+<p>The winner of a round is the player who finishes with the lowest value hand. Cards that fit into melds are worth 0 points, while deadwood is counted according to rank: face cards are worth 10 points, aces 1 points and other cards according to their numeric value.</p>
+<p>The winner of a round will score the difference in value between theirs and their opponent’s total deadwood value. If the winner called Gin, they will be awarded 25 bonus points. In case a player Knocked but has a higher deadwood count than their opponent, their opponent wins and gets awarded 10 bonus points.</p>
+<p>The game stops when a player reaches 100 points, he is declared the winner.</p>
+<h2 id="deliverable">Deliverable</h2>
+<p>For this assignment, you are required to implement a player exposing three functions. These functions are:</p>
+<ol style="list-style-type: decimal">
+<li><code>actionFunc</code>, called at the start of your turn where you choose which pile to draw from.</li>
+<li><code>playFunc</code>, called after you drew a card and where you decide what to announce.</li>
+<li><code>meldFunc</code>, called at the end of the round where you return the melds formed with your last hand.</li>
+</ol>
+<p>A skeleton for the file can be found in <code>submission/Player.hs</code> in the code bundle.</p>
+<p>To keep the playing field level, and to allow us to evaluate your code we ask you use only the libraries provided. In short, you cannot edit the <code>stack.yaml</code> and <code>package.yaml</code> or add functionality to the source code (in <code>src/</code>).</p>
+<p>You will need to submit a file called <code>studentNo_name.zip</code> which you will create by zipping the contents of the <code>submission/</code> directory. If you have any extension, you will need to include them in a directory titled <code>extensions/</code> in your zip file.</p>
+<h3 id="choosing-an-action">Choosing an action</h3>
+<p>At the beginning of its turn, your player will need to decide whether to draw a card from the discard or the stock. The first parameter of the function is the card on top of the discard. The last parameter is your player’s current hand.</p>
+<p>This function will also receive extra information about the state of the game. This information is:</p>
+<ul>
+<li><code>(Score, Score)</code> the score as of last round as: <em>(your score, opponent score)</em>. In the first round of a game, this will be <code>(0, 0)</code>.</li>
+<li><code>Maybe String</code> what was your last memory. In the first turn of the first round, this will be <code>Nothing</code>. In subsequent turns, you will receive the memory you returned from <code>playCard</code>; the game does not change your memory in any way. In the first turn of each subsequent round, you will receive the last memory you returned in the previous round. This will allow you to keep track of parameters during a whole game.</li>
+<li><code>Maybe Draw</code> what action you opponent took if they played before you. If you are the dealer, this will be <code>Nothing</code> in the first round.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Draw</span> <span class="fu">=</span> <span class="dt">Stock</span> <span class="fu">|</span> <span class="dt">Discard</span>
+
+<span class="co">-- | Action function type.</span>
+<span class="co">--</span>
+<span class="co">-- This function is called at the beginning of a turn before the player has to</span>
+<span class="co">-- form melds.</span>
+<span class="kw">type</span> <span class="dt">ActionFunc</span>
+  <span class="fu">=</span> <span class="dt">Card</span>            <span class="co">-- ^ card on top of the discard pile</span>
+  <span class="ot">-&gt;</span> (<span class="dt">Score</span>, <span class="dt">Score</span>) <span class="co">-- ^ scores of (player, opponent) as of last round</span>
+  <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">String</span>
+  <span class="co">-- ^ player's memory, on first player turn in the first round it will be Nothing</span>
+  <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Draw</span> <span class="co">-- ^ opponent's chosen action, on first game turn it will be Nothing</span>
+  <span class="ot">-&gt;</span> [<span class="dt">Card</span>]     <span class="co">-- ^ the player's hand</span>
+  <span class="ot">-&gt;</span> (<span class="dt">Draw</span>, <span class="dt">String</span>) <span class="co">-- ^ which pile did the player chose to draw from</span></code></pre></div>
+<h3 id="managing-the-hand">Managing the hand</h3>
+<p>After having chosen where to draw a card from, your player will be called again with the drawn card. It will need to decide which card to discard and what to announce.</p>
+<p>The first argument, <code>Card</code>, is the card your player drew, it is not added to your hand directly. The last argument is your player’s hand. Then, we have similar parameters to <code>pickCard</code>:</p>
+<ul>
+<li><code>(Score, Score)</code> the score as of the previous round as: <em>(your score, opponent score)</em>.</li>
+<li><code>String</code> the memory you returned from <code>pickCard</code> (see above).</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span> <span class="fu">=</span> <span class="dt">Action</span> <span class="dt">Act</span> <span class="dt">Card</span>
+<span class="kw">data</span> <span class="dt">Act</span> <span class="fu">=</span> <span class="dt">Gin</span> <span class="fu">|</span> <span class="dt">Knock</span> <span class="fu">|</span> <span class="dt">Drop</span>
+
+<span class="co">-- | Play function type.</span>
+<span class="co">--</span>
+<span class="co">-- A player receives the card he decided to draw (from discard or stock), her</span>
+<span class="co">-- hand and her memory. She then choses whether to Knock or Discard.</span>
+<span class="kw">type</span> <span class="dt">PlayFunc</span>
+  <span class="fu">=</span> <span class="dt">Card</span>              <span class="co">-- ^ picked card</span>
+  <span class="ot">-&gt;</span> (<span class="dt">Score</span>, <span class="dt">Score</span>)   <span class="co">-- ^ scores of (player, opponent) as of last round</span>
+  <span class="ot">-&gt;</span> <span class="dt">String</span>           <span class="co">-- ^ the player's memory</span>
+  <span class="ot">-&gt;</span> [<span class="dt">Card</span>]           <span class="co">-- ^ the player's hand</span>
+  <span class="ot">-&gt;</span> (<span class="dt">Action</span>, <span class="dt">String</span>) <span class="co">-- ^ the player's chosen card and new state</span></code></pre></div>
+<h3 id="forming-melds-1">Forming melds</h3>
+<p>Finally, your player needs to be able to convert a hand of cards into melds to do the scoring. Your melds will be checked against the rules, obviously.</p>
+<p>This function also receives additional information about the game. Though this may not be strictly necessary,<a href="https://fit2102.monash/resources/assignment.html#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> it makes the game more consistent. (For example, some might prefer storing their melds in memory.)</p>
+<p>One key difference is that you cannot modify your memory in this function. This is because <code>makeMeld</code> is called <em>after</em> a round finishes, thus we cannot form a <code>Play</code> with its return.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Meld</span> <span class="fu">=</span>
+      <span class="dt">Deadwood</span> <span class="dt">Card</span>            <span class="co">-- An unmelded card</span>
+    <span class="fu">|</span> <span class="dt">Set3</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span>      <span class="co">-- 3 cards of same rank different suit</span>
+    <span class="fu">|</span> <span class="dt">Set4</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="co">-- 4 cards of same rank different suit</span>
+    <span class="fu">|</span> <span class="dt">Straight3</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="co">-- 3 cards of same suit, sequential ranks</span>
+    <span class="fu">|</span> <span class="dt">Straight4</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="co">-- 4 cards of same suit, sequential ranks</span>
+    <span class="fu">|</span> <span class="dt">Straight5</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="dt">Card</span> <span class="co">-- 5 cards of same suit, sequential ranks</span>
+
+<span class="co">-- | Meld function type.</span>
+<span class="co">--</span>
+<span class="co">-- Which melds to use for scoring.</span>
+<span class="kw">type</span> <span class="dt">MeldFunc</span>
+  <span class="fu">=</span> (<span class="dt">Score</span>, <span class="dt">Score</span>) <span class="co">-- ^ scores of (player, opponent) as of last round</span>
+  <span class="ot">-&gt;</span> <span class="dt">String</span>        <span class="co">-- ^ the player's memory</span>
+  <span class="ot">-&gt;</span> [<span class="dt">Card</span>]        <span class="co">-- ^ cards in player's hand</span>
+  <span class="ot">-&gt;</span> [<span class="dt">Meld</span>]        <span class="co">-- ^ elected melds</span></code></pre></div>
+<h3 id="managing-the-memory">Managing the memory</h3>
+<p>The common component of all the functions above is the <code>String</code> which is your player’s <em>memory</em>. Your player needs to be able to keep track of some parameters of the game through time. This is enabled by returning a <code>String</code> object after playing.</p>
+<p>Internally, your player should use a custom datatype to store information rather than a <code>String</code>. To enable conversion to and from your datatype, you will have to use a parser-combinator as presented in the course notes. The source code is included in <code>src/Parser/</code>.</p>
+<p>Another thing that can be considered as <em>memory</em> is the score. At each of your function calls, you will be given the score of the <em>last round</em> as: <code>(your score, opponent score)</code>. This can help you adjust your strategy.</p>
+<p>Below is an example of different values <code>pickCard</code> can receive:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Game</th>
+<th>Round</th>
+<th>Player</th>
+<th>Score</th>
+<th>Memory in</th>
+<th>Draw</th>
+<th>Memory out</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>First</td>
+<td>First</td>
+<td>A</td>
+<td>(0, 0)</td>
+<td>Nothing</td>
+<td>Nothing</td>
+<td>“a”</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>B</td>
+<td>(0, 0)</td>
+<td>Nothing</td>
+<td>Just Stock/Discard</td>
+<td>“b”</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Next</td>
+<td>A</td>
+<td>(0, 0)</td>
+<td>Just “a”</td>
+<td>Just Stock/Discard</td>
+<td>“a”</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>B</td>
+<td>(0, 0)</td>
+<td>Just “b”</td>
+<td>Just Stock/Discard</td>
+<td>“b”</td>
+</tr>
+<tr class="odd">
+<td>Next</td>
+<td>First</td>
+<td>B</td>
+<td>(n, m)</td>
+<td>Just “b”</td>
+<td>Nothing</td>
+<td>“d”</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>A</td>
+<td>(m, n)</td>
+<td>Just “a”</td>
+<td>Just Stock/Discard</td>
+<td>“c”</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Next</td>
+<td>B</td>
+<td>(n, m)</td>
+<td>Just “d”</td>
+<td>Just Stock/Discard</td>
+<td>“d”</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>A</td>
+<td>(m, n)</td>
+<td>Just “c”</td>
+<td>Just Stock/Discard</td>
+<td>“c”</td>
+</tr>
+</tbody>
+</table>
+<h2 id="assessment">Assessment</h2>
+<p>The assessment for this assignment will be in four parts:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Report (25%)</strong></li>
+<li><strong>Code quality (30%)</strong></li>
+<li><strong>Memory and parsing (25%)</strong></li>
+<li><strong>Player (20%)</strong></li>
+</ol>
+<h3 id="report">Report</h3>
+<p>You are required to provide a report in PDF format of at least two pages, plus one per extension. You want to summarise the workings of the code, and highlight the interesting parts and difficulties you encountered.</p>
+<p>In particular, describing how your strategy, and thus your code, evolved will be beneficial.</p>
+<h3 id="code-quality">Code quality</h3>
+<p>The code quality will be the main evaluation criterion for your assignment. You can think of this as a two-part marking scheme:</p>
+<ol style="list-style-type: decimal">
+<li>Apply concepts from the course. The important thing here is that you need to actually use them somewhere. For example, defining a new type and its <code>Monad</code> instance, but then never actually needing to use it will not give you marks. (Note: using bind <code>(&gt;&gt;=)</code> for the sake of <em>using the <code>Monad</code></em> when it is not needed will not count as “effective usage.”)</li>
+<li>Have readable code, commented when necessary. Readable code means that you keep your lines at a reasonable length (&lt; 80 characters). That you provide comments above non-trivial functions. And, that you comment sections of your code whose function may not be clear.</li>
+</ol>
+<p>Remember, the point of comments is to give a <em>manual</em> rather than describe the code. In the case of a function, you would explain how to use it rather than what are the parameters, return types, etc.</p>
+<h3 id="memory-and-parsing">Memory and parsing</h3>
+<p>One of the key features of your player is the ability to keep track of the game. To enable everyone to use their own datatypes, the game code will consider your memory to be a <code>String</code>.</p>
+<p>Handling complex data as strings is cumbersome. This means you will have to implement <em>serialisation</em> and <em>deserialisation</em>. This will be done using a <em>parser-combinator</em> – of which you can see an explanation <a href="https://tgdwyer.github.io/parsercombinators/">here</a>. The source code is provided in <code>src/Parser/</code>.</p>
+<p>You can use the <code>Show</code> instance to serialise your data structures. However, you must not use (or derive) the <code>Read</code> instance. We require you to use the parser-combinator supplied to handle deserialisation.</p>
+<p>Your memory should help you make decisions. This means your player needs to use the memory to compute relevant parameters for choosing an action. Simply storing past information is not sufficient. For example, your player could use the memory to compute statistics about unseen cards, your opponent’s hand, etc.</p>
+<h3 id="player">Player</h3>
+<p>We will run a tournament <a href="https://fit2102.monash/">online</a> based on the code provided. Except the interface, this will be the same game.</p>
+<p><strong>Important</strong>: Your rank in the tournament will not have a direct impact on your mark. A high-performing player with spaghetti code will be graded lower than an average, well-written player.</p>
+<p>However, we will also upload a number of bots on the server. They will be identifiable by having ids below 10. Having a higher rank than them will award you marks:</p>
+<ul>
+<li><em>5%</em> for having a valid player, that is one which can play a game.</li>
+<li><em>5%</em> for having a continuing player, that is one which does not error during the tournament – e.g., timeouts.</li>
+<li><em>5%</em> for beating at least one of the bots.</li>
+<li><em>5%</em> for beating all of the bots.</li>
+</ul>
+<h2 id="marking-rubric">Marking rubric</h2>
+<ul>
+<li><strong>Pass:</strong> The code compiles without warnings and your player has some heuristic strategy (see Game AI below), you use some form of memory with parsing. The report supports the code.</li>
+<li><strong>Credit:</strong> You use the memory to store non-trivial information and have a clear report outlining your efforts.</li>
+<li><strong>Distinction:</strong> The code is well structured and uses some advanced concepts from the course – higher order functions, function composition, monadic operations, etc.</li>
+<li><strong>High Distinction:</strong> The code does not contain any excess parts, the memory is used to store curated data about the game, the player can defeat all training opponents, and the documentation supports the submission.</li>
+</ul>
+<p>Do note you can expect a higher mark with an average level AI with very neat code, rather than a high-performing AI with spaghetti code.</p>
+<h3 id="game-ai">Game AI</h3>
+<p>The goal of this assignment is not for you to develop an AI which can compete with <a href="https://openai.com/">OpenAI</a> or <a href="https://deepmind.com/research/case-studies/alphago-the-story-so-far">AlphaGo</a>. The emphasis should be on code quality and applying functional concepts. However, a more <em>advanced</em> AI usually requires more interesting code.</p>
+<p>Below, you can find a non-exhaustive list of AI algorithms, ranked by implementation difficulty, which you can use as reference. Note that a well implemented heuristic player that is excellent with respect to all the criteria above is sufficient for an HD. On the contrary, a complex Monte Carlo player (see below) which has very bad code quality and makes no use of the memory may very well not get a passing grade.</p>
+<ul>
+<li><strong>Naïve AI:</strong> tries to play its best card given the current state of the game, you can start by implementing one to make sure you respect the game’s rules. However, this will not get a passing grade.</li>
+<li><strong>Heuristic player:</strong> has a procedure (heuristic) to determine the strength of its hand versus its opponent’s and saves additional information about the game being played to enhance its decision at each turn.</li>
+<li><strong>MinMax:</strong><a href="https://fit2102.monash/resources/assignment.html#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a> tries to minimise the maximum loss of a player by building a tree of possible moves and playing against itself. This method was developed for two-player, zero-sum game with perfect information. In this context, you will have to take into account the uncertain nature of the game.</li>
+<li><strong>Probabilistic player:</strong> will make use of probabilities to determine which cards have the highest chance of winning the game (i.e., appearing in the stock) or how good their opponent’s hand is. It will make use of the memory to keep track of played cards and refine its calculations.</li>
+</ul>
+<h3 id="extensions">Extensions</h3>
+<p>This assignment is fairly open-ended. You can achieve an HD with a solid player and very neat code, but getting a high HD will require you to go beyond. Here, you can find some ideas of what we consider extensions. All extensions need to be supported by at least one additional page in your report. Feel free to come up with your own.</p>
+<p>And don’t forget, you will only be awarded marks for extension work that extends an already high quality submission. If the core of your submission is not already HD-worthy, the extension will not grant you many marks.</p>
+<h4 id="using-logs-to-build-a-player">Using logs to build a player</h4>
+<p>The game server (see below) will keep logs of your games against other players. Reports for each game will come in two files named:</p>
+<ol style="list-style-type: decimal">
+<li><code>&lt;timestamp&gt;.csv</code> the logs of the turns taken by each player, anonymised.</li>
+<li><code>&lt;timestamp&gt;-score.csv</code> the score for each round of the game, along with the action taken.</li>
+</ol>
+<p>You can write a Haskell program to data-mine these reports and tailor some parts of your player accordingly.</p>
+<h5 id="turn-file">Turn file</h5>
+<pre class="csv"><code>1,SA;CK;DK;S3;HJ;C9;S4;S5;SQ;D10,0,H5,SA,C3</code></pre>
+<p>Each file will be the record of <em>one game</em> – so, multiple rounds. The file will come without a header but here are the columns:</p>
+<ol style="list-style-type: decimal">
+<li>Round number.</li>
+<li>Cards in the player’s hand – the format is <code>&lt;first char of suit&gt;&lt;rank&gt;</code> separated by ‘;’.</li>
+<li>Whether it is <em>your turn</em> to play – ‘0’ means your opponent’s turn and ‘1’ your turn.</li>
+<li>The card at the top of the discard.</li>
+<li>Which card was picked – if it is not the same as the discard, then it came from the stock.</li>
+<li>And, which card was discarded.</li>
+</ol>
+<h5 id="score-file">Score file</h5>
+<pre class="csv"><code>1,0,12,Drop,0</code></pre>
+<p>Each file will record one round per row, formatted as:</p>
+<ol style="list-style-type: decimal">
+<li>Round number.</li>
+<li>Your score.</li>
+<li>Opponent’s score – in the same fashion as during the game.</li>
+<li>Action taken.</li>
+<li>Whether the action was called by you (‘1’) or your opponent (‘0’).</li>
+</ol>
+<h4 id="monte-carlo-tree-search">Monte Carlo Tree Search</h4>
+<p>Monte Carlo Tree Search (MCTS) is the fusion between (tree) search algorithms such as minmax and using probabilities (Monte Carlo simulation) to determine the branching in the search tree. It makes use of a <em>simulation phase</em> to explore deeper. In this context, you can leverage the memory to save already explored branches, or weight, etc.</p>
+<p><em>Hint:</em> Building a MCTS player requires having access to a source of entropy for side-effect-free random number generation; you can use your hand as it comes from a shuffled deck.</p>
+<h4 id="writing-an-extensive-test-suite">Writing an extensive test suite</h4>
+<p>Testing in functional languages is often done semi-automatically. This is because the test framework can leverage the type system to generate arbitrary inputs – think fuzzing.</p>
+<p>In the course material, we use <a href="https://github.com/sol/doctest#readme">Doctest</a>. You may have seen lines starting with <code>prop&gt;</code>. These mean “properties” and what is great, for us programmers, is that we do not need to come up with inputs, the testing framework does it itself.</p>
+<p>The leading test framework in Haskell is <a href="https://hackage.haskell.org/package/QuickCheck">QuickCheck</a>. It is actually what is called in the <code>prop&gt;</code> example above. Identifying properties (sometimes called invariants) of your code can help you write better functions.</p>
+<p>The only limitation here is that the test suite must be <em>extensive.</em> By that we mean that you need to test more than one aspect of your functions (not just “returns a <code>Card</code>”). Furthermore, you will need a compelling report showing how you used the test suite to design your code – think Test Driven Development, where you determine the function’s behaviour first rather than writing it and adding tests for cases you think of.</p>
+<h3 id="plagiarism">Plagiarism</h3>
+<p><a href="https://www.monash.edu/students/admin/policies/academic-integrity" class="uri">https://www.monash.edu/students/admin/policies/academic-integrity</a></p>
+<p>We will be checking your code against the rest of the class, and the internet, using a plagiarism checker. Monash applies strict penalties to students who are found to have committed plagiarism.</p>
+<p>Any plagiarism will lead to a 0 mark for the assignment and will be investigated by the staff. There is a zero-tolerance policy in place at Monash. So be careful and report any collaboration with other students.</p>
+<h2 id="tournament-server">Tournament server</h2>
+<p>We will run a server for the course at <a href="https://fit2102.monash/" class="uri">https://fit2102.monash</a> with the following pages:</p>
+<ul>
+<li><a href="https://fit2102.monash/uploader/">The uploader</a>: after logging in, this page will allow you to upload your code and compete in the tournament.</li>
+<li><a href="https://fit2102.monash/resources/assignment.html">The handout</a>: this document.</li>
+<li><a href="https://fit2102.monash/ladder.php">The ladder</a>: this page will display the scores of the last tournament run.</li>
+</ul>
+<p>One thing to note is that the server only accept submissions as whole files. If your code uses a multi-file structure, you will need to concatenate them into your <code>Player.hs</code> before uploading.</p>
+<p>Once you upload your player, you will see two links on the page:</p>
+<ul>
+<li><code>home.php</code>: shows your current ranking, last upload, and previous games played.</li>
+<li><code>status.php</code>: shows the status of your current upload. Furthermore, you can inspect your games by clicking on their number.</li>
+</ul>
+<p>Before uploading your player, please check that the following runs:</p>
+<pre><code>stack exec staticgame</code></pre>
+<p>This will run a single game with two instances of your player. You can modify this code (found in <code>staticgame/Main.hs</code>) to run different versions of your code.</p>
+<p>You cannot import external libraries because the server cannot know about them. In a nutshell, you cannot edit the <code>stack.yaml</code> or the <code>package.yaml</code>.</p>
+<p>The code provided uses the Safe pragma<a href="https://fit2102.monash/resources/assignment.html#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a> to make sure the code you use is okay to run. It is also compiled with the <code>-Werror</code> flag which means that all warnings will throw errors and prevent your code from compiling. So make sure you run the test suite before you upload your player.</p>
+<h3 id="summary-of-tournament-submission-rules">Summary of tournament submission rules</h3>
+<ul>
+<li><em>Respect the rules:</em> your player must always play valid actions or it will be eliminated.</li>
+<li><em>Be timely:</em> to give everyone a fair chance, your functions must all return in under one second.</li>
+<li><em>Be safe:</em> your player must compile with all flags provided, including the <code>import safe</code>.</li>
+<li><em>Single file:</em> your code must be submitted on the server as a single file.</li>
+</ul>
+<div class="footnotes">
+<hr>
+<ol>
+<li id="fn1"><p>This means a deck with four suits (clubs, diamonds, spades and hearts) with the following ranking: King, Queen, Jack, 10, 9, 8, 7, 6, 5, 4, 3, 2, Ace.<a href="https://fit2102.monash/resources/assignment.html#fnref1">↩</a></p></li>
+<li id="fn2"><p>Examples taken from <a href="https://en.wikipedia.org/wiki/Gin_rummy">Wikipedia</a>.<a href="https://fit2102.monash/resources/assignment.html#fnref2">↩</a></p></li>
+<li id="fn3"><p>You can compute the optimal arrangement of melds given a hand, but this may be <a href="https://en.wikipedia.org/wiki/Subset_sum_problem">expensive</a>.<a href="https://fit2102.monash/resources/assignment.html#fnref3">↩</a></p></li>
+<li id="fn4"><p>https://en.wikipedia.org/wiki/Minimax<a href="https://fit2102.monash/resources/assignment.html#fnref4">↩</a></p></li>
+<li id="fn5"><p>More info at <a href="https://ghc.haskell.org/trac/ghc/wiki/SafeHaskell">SafeHaskell</a>, but this should not hinder your work.<a href="https://fit2102.monash/resources/assignment.html#fnref5">↩</a></p></li>
+</ol>
+</div>
+
+
+</body></html>
